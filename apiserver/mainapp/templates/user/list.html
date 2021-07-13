@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>用户列表</title>
+    <link rel="stylesheet" href="/static/css/my.css">
+</head>
+<body>
+<h3 class="success" style="padding: 20px">
+        {{ message|capitalize }}
+    <p>生日：{{ birthday|datefmt("%m-%d %H-%M") }}</p>
+    <p>￥:{{ money|moneyfmt(currency) }}</p>
+    <p>{{ "hi!,%s 今天中午吃 %s"|format('lesli','烤肉') }}</p>
+    <p>{{ "<h3>good</h3>" }}</p>
+    <p>{{ "<h3>good</h3>"|striptags }}</p>
+    <p>{{ "<h3>good</h3>"|safe }}</p>
+    <p>{{ cate|unique|join(',') }}</p>
+    <p>{{ cate|slice(3)|join("-") }}</p>
+    <p>{{ cate|slice(3)|list }}</p>
+    <p>{{ cate|random }}</p>
+    <p>{{ cate|random }}-{{ level|default("草根") }}</p>
+    <p>{{ script }}</p>
+</h3>
+</body>
+</html>

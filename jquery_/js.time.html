@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<title></title>
+		<style type="text/css">
+			#clock{
+				color: white;
+				position: absolute;
+				right:0.625rem;
+				top:0.625rem;
+				width: 17.5rem;
+				height: 2.5rem;
+				background-color: blue;
+				line-height: 2.5rem;
+				text-align: center;
+			}
+		</style>
+	</head>
+	<body>
+		<div id="clock"></div>
+		<script type="text/javascript">
+			const clockDiv = document.getElementById('clock')
+			const weekdays = ['日','一','二','三','四','五','六']
+			function showClock(){
+				let now = new Date()
+				let year = now.getFullYear()
+				let month = now.getMonth() + 1
+				let date = now.getDate()
+				let hour = now.getHours()
+				let min = now.getMinutes()
+				let sec = now.getSeconds()
+				let day = now.getDay()
+				let fullStr = `${year}年${month}月${date}日
+					${hour}:${min}:${sec} 星期${weekdays[day]}` 
+				clockDiv.textContent = fullStr	
+			}
+			showClock()
+			//隔一秒调用一次使用下面方法
+			window.setInterval(showClock,1000)
+		</script>
+	</body>
+</html>

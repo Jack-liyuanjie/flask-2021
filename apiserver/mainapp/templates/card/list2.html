@@ -1,0 +1,28 @@
+{% extends "base.html"%}
+{% block css %}
+    <link rel="stylesheet" href="/static/css/card.css">
+{% endblock %}
+
+{% block content %}
+    <table>
+    <caption>银行卡列表</caption>
+        <thead>
+            <th>卡ID</th>
+            <th>银行账号</th>
+            <th>用户名</th>
+            <th>银行名</th>
+            <th>余额</th>
+        </thead>
+        <tbody>
+        {% for card in cards %}
+            <tr>
+                <td>{{ card.id }}</td>
+                <td>{{ card.number }}</td>
+                <td>{{ card.username }}</td>
+                <td>{{ card.bankname }}</td>
+                <td>{{ card.money }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

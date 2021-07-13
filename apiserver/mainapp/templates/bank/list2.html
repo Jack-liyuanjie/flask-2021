@@ -1,0 +1,24 @@
+{% extends "base.html"%}
+{% block css %}
+    <link rel="stylesheet" href="/static/css/bank.css">
+{% endblock %}
+
+{% block content %}
+    <table>
+    <caption>银行列表</caption>
+        <thead>
+            <th>ID</th>
+            <th>名称</th>
+            <th>地址</th>
+        </thead>
+        <tbody>
+        {% for bank in banks %}
+            <tr>
+                <td>{{ bank.id }}</td>
+                <td>{{ bank.name }}</td>
+                <td>{{ bank.address }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

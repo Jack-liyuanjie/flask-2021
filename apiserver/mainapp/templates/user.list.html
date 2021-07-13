@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>user_List</title>
+</head>
+<body>
+    <ul>
+        <li>url:{{ request.url }}</li>
+        <li>base_url:{{ request.base_url }}</li>
+        <li>host_url:{{ request.host_url }}</li>
+        <li>path:{{ request.path }}</li>
+        <li>method:{{ request.method }}</li>
+        <li>客户端IP:{{ request.remote_addr }}</li>
+    </ul>
+</body>
+</html>

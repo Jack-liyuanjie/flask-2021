@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title></title>
+		<style type="text/css">
+			p {
+				width: 6.25rem;
+				height: 6.25rem;
+				color: white;
+				font: 3.75rem/6.25rem Arial;
+				border-radius: 3.125rem;
+				text-align: center;
+				float: left;
+				margin-left: 0.625rem;
+			}
+			.red{
+				background-color: red;
+			}
+			.blue{
+				background-color: blue;
+			}
+		</style>
+	</head>
+	<body>
+		<script type="text/javascript">
+			//双色球6个红球一个篮球
+			//红色从1-33选择六个不重复号码
+			//蓝色从1-16选择一个号码
+			function outputBall(num, color='red') {
+				document.write(`<p class="${color}">`)
+				if (num < 10) {
+					document.write('0')
+				}
+				document.write(num)
+				document.write('</p>')
+			}
+				
+			
+			var redBalls = []
+			for (let i = 0; i < 33; i += 1){
+				redBalls.push(i + 1)
+			}
+			var selecteBalls = []
+			for (let i = 1; i <= 6; i += 1){
+				//产生一个随机的下标
+				let index = parseInt(Math.random() * redBalls.length)
+				//通过下标获取红色球放到selecteBalls数组中
+				selecteBalls.push(redBalls[index])
+				//删除数组中指定的位置元素
+				redBalls.splice(index, 1)
+			}
+			selecteBalls.sort((x, y) => x - y)
+			selecteBalls.forEach(item => outputBall(item))											
+			let num = parseInt(Math.random() * 16 + 1)
+			outputBall(num,'blue')
+		</script>
+	</body>
+</html>

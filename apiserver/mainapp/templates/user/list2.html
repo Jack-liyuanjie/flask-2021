@@ -1,0 +1,26 @@
+{% extends "base.html"%}
+{% block css %}
+    <link rel="stylesheet" href="/static/css/user.css">
+{% endblock %}
+
+{% block content %}
+    <table>
+    <caption>用户列表</caption>
+        <thead>
+            <th>用户ID</th>
+            <th>姓名</th>
+            <th>身份证号</th>
+            <th>手机号</th>
+        </thead>
+        <tbody>
+        {% for user in users %}
+            <tr>
+                <td>{{ user.id }}</td>
+                <td>{{ user.name }}</td>
+                <td>{{ user.number }}</td>
+                <td>{{ user.phone }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}

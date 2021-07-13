@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>学校信息</title>
+    <script src="https://cdn.bootcdn.net/ajax/libs/vue/2.6.9/vue.min.js"></script>
+</head>
+<body>
+    <div id="school-app">
+        <table width="600">
+            <thead>
+                <th>编号</th>
+                <th>校长</th>
+                <th>名称</th>
+                <th>网址</th>
+                <th width="200">操作</th>
+            </thead>
+            <tbody>
+                <tr v-for="item in schools">
+                    <td>{{item.collid}}</td>
+                    <td>{{item.collmaster}}</td>
+                    <td>{{item.collname}}</td>
+                    <td>{{item.collweb}}</td>
+                    <td><a :href="'http://localhost:5000/delbank?id='+item.collid">删除操作</a></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <script src="js/SchoolApp.js"></script>
+</body>
+</html>

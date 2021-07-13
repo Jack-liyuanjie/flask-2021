@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title }}的页面</title>
+</head>
+<body>
+    <h2>{{ title }}的页面</h2>
+    <form action="/bank" method="post">
+        <lable>银行名称</lable>
+        <input name="name"><br>
+        <lable>卡号</lable>
+        <input name="card_num"><br>
+        <button>提交</button>
+    </form>
+<div class="error">
+    <span>{{ error_message }}</span>
+</div>
+</body>
+</html>

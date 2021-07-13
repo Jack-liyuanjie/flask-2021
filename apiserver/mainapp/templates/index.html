@@ -1,0 +1,26 @@
+{% extends "index2.html"%}
+{% from "macro.html" import menu %}
+
+{% block title %}
+  第三级的标题-主页
+{% endblock%}
+
+{% block content %}
+{{ super() }}
+<h4>以后在此显示内容</h4>
+
+  {% include "500.html" %}
+
+<h3>{{ menu() }}</h3>
+<hr>
+<ol>
+  {% for item in menus %}
+  <li {% if loop.index % 2 != 0 %}class="add" {% endif %}>{{ item }}</li>
+  {% endfor %}
+</ol>
+<hr>
+{% endblock %}
+
+{% block left_menu %}
+<h3>{{ menu() }}</h3>
+{% endblock %}

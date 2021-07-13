@@ -1,0 +1,990 @@
+Flask的MVC设计思想
+1.路由和视图处理函数（Controller）
+2.在视图的处理函数中根据业务需求，加载数据（Model）事先再app中声明
+3.在视图的处理处理函数中根据业务需求，加载数据（Model）并渲染到模板中（View）
+4.将渲染之后的模板数据返回给客户端。
+
+MTV设计思想，基于MVC的：
+1.M-Model
+2.T-Template模板（View）
+3.V-View处理函数（Controller）
+------------------------------------------------------------------------------------------------------------------------
+案列分析：
+@app.route('/bank',methods=['GET','POST'])
+def addBank():
+    # 加载数据（Model 交互操作）
+    data = {
+        'title': '绑定银行卡',
+        'error_message': '卡号和银行名称不能为空'
+    }
+    # 渲染模板
+    html = render_template('bank_edit.html',**data)
+
+    return html
+    # 启动flask的WEB服务器
+app.run('localhost',
+        5000,
+        True,  # 默认未开启调试模式，True开启调试模式
+        threaded=True, #默认单线程，即为False
+        processes=1) # 默认只有一个进程
+        【注意】多线程和多进程不能同时开启，只能开启一个，不然会报错
+------------------------------------------------------------------------------------------------------------------------
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title }}的页面</title>
+</head>
+<body>
+<h2>{{ title }}的页面</h2>
+<from>
+    <lable>银行名称</lable>
+    <input name="name"><br>
+    <lable>卡号</lable>
+    <input name="card_num"><br>
+</from>
+<div class="error">
+    <span>{{ error_message }}</span>
+</div>
+</body>
+</html>
+------------------------------------------------------------------------------------------------------------------------
+以上html文件不是静态的网页文件，而是一个动态的模板文件，页面中存在动态显示的变量。
+需要在视图函数中，指定数据渲染模板，渲染之后的html内容才是静态资源
+------------------------------------------------------------------------------------------------------------------------
+flask项目插件
+flask-script:
+一：安装：pip install flask-script
+二：初始化：
+1.使用app对象进行manager对象的初始化
+2.from flask_script improt Manager
+3.manager = Manager(app)
+三：使用manager运行：manager.run()
+四：cmd python xxx.py runserver (-p 端口 -h 主机 -d 调试模式 -r 自动加载)
+
+二.flask-blueprint插件
+blueprint插件主要实现拆分多个视图函数，让同类或同一个模块分到一view的脚本中，
+如银行系统中，可以分用户模块，银行模块，交易模块等，则每一个模块有他自己的view处理函数的脚本
+1.安装依赖包
+pip install flask-blueprint
+
+2.在views.bank.py脚本中使用
+from flask import request
+from flask import Blueprint
+
+------------------------------------------------------------------------------------------------------------------------
+路由,request与response
+1.1路由规则
+简单案例：
+@blue.route('/find')
+def find():
+    return""
+
+请求的url是http://localhost:5000/find.路由中配置的路径即是请求的path路径。
+如果使用"蓝图"则在注册时，可以注明它的url前缀。
+app.register_blueprint(bank.blue, url_prefix="/bank")
+通过url_prefix参数指定某一个模块下的所有请求资源，对于/find路由来说的，应该是/bank的子路径（路由）
+访问全路径是http：//localhost:5000/bank/find
+
+1.1.1路由的path中参数
+语法：
+@app.route('/find'<converter:word>,methods=['GET'])
+def find(word):
+    return ""
+
+converter 是参数的转换器，一般是指定的类型，如string,int,float,path,uuid,any.
+其中any()表较特殊，可以指定任意的类型转换器，如<any(int,string,uuid):word>
+但目前最新flask版本不支持any，可以直接写成('/find/<word>/'),word表示任意类型
+另外，path转换器主要用于引用别的网址时使用。
+@app,route('/forward/<path:url>')
+def forward(url):
+    # 重定向
+    return redirect(url)
+
+以上的路由配置，对于"/forward/http:www.baidu.com"路径时合法，如果将path
+转换器换成string有可能会出错。
+
+1.1.2路由的请求方法
+路由中的请求方法是通过methods设置的，而且要求是list类型。
+@blue.route('/find/<word>')
+def find():
+    return  "keyword是str类型,值是%s" %(keyword)
+
+#上面的注册路由是没有指定methods,默认中包含get和options,header
+常见的请求方法:
+1.GET查询数据使用，可以上传的参数大小限于1m以内，参数是显示在请求地址中的。
+2.POST添加或编辑数据时使用，可以上传超过1G的大数据，且以表单参数的方式上传，并不显示请求地址中，
+相比于GET，请求参数比较安全且支持大数据或文件。
+3.PUT更新数据时使用，局部数据的修改，如修改用户的口令或头像
+4.PATCH批量更新数据时使用，整体的数据修改，如修改用户的收货地址，实名认证，绑定银行卡
+5.DELETE删除数据操作时使用
+6.其他方法OPTIONS，HEAD
+如声明一个处理函数，用于删除银行信息，正确的路由配置如下：
+@app.route('/del/<int:bank_id>', methods=["DELETE"])
+def delete4id(bank_id):
+    return "删除操作成功！"
+------------------------------------------------------------------------------------------------------------------------
+#针对PUT/DELETE/POST/GET的url接口的测试，可以使用requests库
+pip install requests
+
+requests库中提供相关函数，函数的名称与请求方法一一对应，
+from unittest import TestCase
+import requests
+# 声明单元测试类
+class TestSchool(TestCase):
+    # 声明单元测试的方法
+    # 方法名以"test_"开头
+    def test_del(self):
+        url = "http://localhost:5000/bank/del/1"
+        resp = requests.delete(url)
+        # 断言，最后一个参数表示断言失败的信息
+        self.assertIs(resp.status_code, 200, '请求失败')
+        print(resp.text)
+
+当然也可以使用requests.request()方法是最全的方法，其他的函数都是在reque()方法上重新封装的
+from unittest import TestCase
+import requests
+# 声明单元测试类
+class TestSchool(TestCase):
+    # 声明单元测试的方法
+    # 方法名以"test_"开头
+    def test_del(self):
+        url = "http://localhost:5000/bank/del/1"
+        method = 'DELETE'
+        resp = requests.request(method, url)
+        # 断言，最后一个参数表示断言失败的信息
+        self.assertIs(resp.status_code, 200, '请求失败')
+        print(resp.text)
+------------------------------------------------------------------------------------------------------------------------
+1.1.3路由的反向解析
+from flask import url_for
+from flask improt Blueprint
+
+blue = Blueprint('cardBlue', __name__)
+
+@blue.route('/add/<bankName>/<int:page>')
+def addCard(bankName,page):
+    return """
+        %s 开户成功！目前在第%s页
+        <br>
+        <a href="%s">返回首页</a>
+    """ % (bankName, page, url_for('index'))
+
+
+@blue.route('/select_bank')
+def seletBank():
+    # 查询所有银行，供用户选择
+    # 用户选择之后，进入开户页面
+    bankName = "中国银行"
+    # next_url = "/card/add/" + bankName
+    return """
+    选择银行成功，3秒后<a href="%s">进入开户页面</a>
+    """ % url_for('cardBlue.addCard', bankName=bankName)
+
+@app.route('/')
+def index():
+    return """
+        <ul>
+            <li> <a href="%s">银行卡开户</a></li>
+            <li> <a href="%s">银行卡管理</a></li>
+            <li> <a href="%s">用户管理</a></li>
+        </ul>
+    """ % (
+        url_for('cardBlue.addCard', bankName='中国银行',page=1),
+        url_for('bankBlue.edit', bankId=1),
+        url_for('userBlue.find')
+    )
+------------------------------------------------------------------------------------------------------------------------
+1.2请求对象
+from flask import request
+请求对象本质是封装客户端发送的请求数据，在Flask中由WerKzeug库(实现Python的wsgi接口)封装的，包含请求的路径，请求的方法
+请求头，请求中包含的Cookie，请求的参数及上传的数据
+
+一个请求对象包含数据的属性一般都是dict类型，如：
+1.request.args查询参数，url路径中使用？分隔的查询参数
+2.request.form表单参数，一般是post请求方法中包含的数据
+3.request.headers请求头
+4.request.cookies Cookie数据
+5.request.files 上传的文件
+6.request.method请求方法，且大写字母表示的
+7.request.url请求路径
+8.request.remote_addr远程访问的客户端IP地址
+------------------------------------------------------------------------------------------------------------------------
+1.3响应对象response
+在服务端，当业务处理完成后，生成响应的数据并封装成响应对象，并传给Python的WSGI，由WSGI向客户端发送数据流
+1.直接返回文本和状态码
+    flask的处理函数如果直接返回文本或附带一个响应的状态码，则会自动封装成一个简单的Response
+    对象，且数据类型默认为:text/html;charset=utf-8
+@blue.route('/publish', methods=['POST'])
+def publish_bank():
+    return "预发布银行公告",200
+    如果返回html文本数据，就可以使用render_template()函数，将写好的html模板经过渲染之后生成的html返回会更好些。
+
+2.使用make_response(data,code)生成response对象，可以设置响应的header的相关信息
+@blue.route('/publish', methods=['POST'])
+def publish_bank():
+    data = "预发布银行公告"
+    code = 200
+    # 将数据和状态码封装到响应对象中
+    response = make_response(data, code)
+
+    # 根据数据类型设置响应头
+    response.headers['Content-Type'] = 'application/json;charset=utf-8'
+    return response
+
+3.jsonify()快速生成json响应对象
+此函数返回也是一个response对象，只不过response对象的header已经设置了content—type
+属性为application.json。
+@blue.route('/publish', methods=['POST'])
+def publish_bank():
+    data = "预发布银行公告"
+    code = 200
+    # 将数据和状态码封装到响应对象中
+    return jsonify(data,code)
+
+4.Response类生成响应对象
+@blue.route('/publish', methods=['POST'])
+def publish_bank():
+    data = "预发布银行公告"
+    code = 200
+    # 将数据和状态码封装到响应对象中
+    response = Response(data, code, content_type="application/json")
+    return response
+    # 创建对象的方法中可以省略code，同时也可以将content_type改为mimetype.
+    mimetype表示文件的数据类型，和content_type表示含义相同
+
+5.重定向
+    在一个请求中，由于业务处理的要求，在处理业务之后，需要进入新的页面。而这个页面之前已经声明它的路由，则需要使用重定向的方式进入到下一个页面。
+    【注意】重定向也是响应对象，必须要返回。而且相对于浏览器或者客户端再次发送新的请求
+@blue.route('/add', methods=['GET', 'POST'])
+def addCard():
+    if request.method == 'POST':
+        # 接收开户信息
+        bankId = request.form.get('bank')
+        username = request.form.get('username')
+        phone = request.form.get('phone')
+        # 验证是否为空
+        # 假如操作成功
+        # 进入列表页面
+        return redirect(url_for('bankBlue.listCard'))
+    # GET请求响应开户页面
+    return render_template('card/add.html')
+
+
+@blue.route('/list')
+def listCard():
+    return render_template('card/list.html')
+------------------------------------------------------------------------------------------------------------------------
+1.4请求异常
+请求异常，在请求处理过程中，验证某一数据出现的错误，可以中断请求。如果请求异常不是请求数据而引起，
+或者说请求资源不存在或服务器发送异常，此时可以捕获异常
+1.4.1
+abort()中断
+2种写法：abort(status_code),abort(Response(data,code,headers...))
+from flask import abort
+@blue.route('/add', methods=['GET', 'POST'])
+def addCard():
+    if request.method == 'POST':
+        # 接收开户信息
+        phone = request.form.get('phone')
+        if phone == '13267886101':
+            # 终端业务
+            # abort(403)
+            abort(Response("<h3 style='color:red'>%s 当前手机号不能被注册</h3>" % phone), 403)
+1.4.2
+捕获请求异常
+通过相关状态码，获取请求异常，并指定处理函数来响应异常的信息。
+
+建议与app对象放在同一个脚本中
+如果处理业务中抛出相关的异常或者发生500的异常，则可以指定异常类捕获
+
+@app.errorhandler(404)
+def notfound(error):
+    print(error)
+    return render_template('404.html')
+
+
+@app.errorhandler(Exception)
+def handlerOfError(error):
+    return render_template('500.html')
+
+------------------------------------------------------------------------------------------------------------------------
+2.1Cookie存储技术
+Cookie数据存储技术，它的数据存储在客户端(浏览器)，在浏览器中会为每个站点(host)创建储存Cookie的空间出来，
+CooKie的数据存储以Key=Value储存的，但是每个key都有生命周期(有效期)。
+一个完整的Cookie信息包含：名称，内容，域名，路径(/)，有效时间(创建时间，到期时间)，
+如查看chrome下localhost域名下的所有cookie数据:chrome://setting/siteData
+在搜索Cookie的文本框中输入"localhost"，查出localhost站点之前创建的Cookie
+
+2.1.1向客户端写入Cookie
+使用response对象的set_cookie()方法可以向客户端添加Cookie
+    def set_cookie(
+        self,
+        server_name: str,
+        key: str,
+        value: str = "",
+        max_age: t.Optional[t.Union[timedelta, int]] = None,
+        expires: t.Optional[t.Union[str, datetime, int, float]] = None,
+        path: str = "/",
+        domain: t.Optional[str] = None,
+        secure: bool = False,
+        httponly: bool = False,
+        samesite: t.Optional[str] = None,
+        charset: str = "utf-8",
+    ) -> None:
+案例：
+@blue.route('/login')
+def login():
+
+    response = make_response("进入登陆页面")
+    # 添加cookie
+    # expire_datetime = datetime.strptime('2021-6-19 3:40:00','%Y-%m-%d %H:%M:%S')
+    # response.set_cookie('username','disen',expires=expire_datetime)
+    # response.set_cookie('email','2311485953@qq.com',max_age=1209600)
+    # 删除cookie
+    response.delete_cookie('email')
+    return response
+
+2.1.3从请求对象中获取Cookie
+@blue.route('/find')
+def find():
+    # 客户端的cookie信息随着请求发送，自动将浏览器中的cookie附加到请求头中
+    # 可以从请求对象中获取浏览器的信Cookie信息
+    email = request.cookie.get('email') # value
+    return ""
+
+------------------------------------------------------------------------------------------------------------------------
+2.2会话Session
+会话技术，一般是指客户端与服务器建立的连接，针对HTTP协议来说，会话连接称之为Session。
+在HTTP/1.0版本上，会话都是一次性，请求与响应的一个完整过程基于session。
+到HTTP/1.1时，会话是长连接，多个请求与响应共享一个会话的。是否为长连接，可以查看响应/请求头Connection
+如果它的值是keep-alive表示长连接。因为Session是可多个请求的共享资源，所有在Session中存数据时，多个请求都可以访问。
+
+【注意】在Flask中使用session时，需要设置一个安全密钥SECRET_KEY
+# 设置secret_key在mainapp下的init设置
+app.config['SECRET_KEY'] = 'lingua'
+
+一般Session使用场景：用户登录，退出，验证用户，城市定位
+from flask import session
+@blue.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        # 读取登录用户信息
+        # 前端页面表单域：name,password
+        name = request.form.get('name')
+        password = request.form.get('password')
+        if all((name,password)): #验证是否为空
+            message = "用户名或者口令不能为空"
+        else:
+            # 将数据写入数据库
+            dao = UserDao()
+            # dao.save(name=name,password=password) 注册时使用
+            user = dao.login(name,password)# 如果存在此用户，则返回用户用户信息，dict
+            if not user:
+                message = "查无 %s 此用户，请确认用户名或口令是否正确！" % name
+            else:
+                #将用户信息
+                session['login_user'] = user
+
+                # 重定向到主页
+                return redirect('/')
+
+
+
+        context = localhost()
+        return render_template('user/login.html', **context)
+        # locals()将当前函数内部的变量生成字典对象，变量名即是字典的key
+        变量值即使key对应的value
+
+------------------------------------------------------------------------------------------------------------------------
+二.模板技术与静态资源
+2.1 template模板
+Flask使用了jinja2模块技术，支持变量，循环与分支以及自定义的标签，支持点"."语法，如
+1.对象.属性
+2.列表.索引下标
+3.字典.key
+模板的html文件存放在template目录中。template目录下的所有html网页文件，内部都可以使用jinja2模块的语法
+但是thml文件必须在view视图函数中通过render_template("xx.html")渲染，即渲染模板文件就是解析模板语法
+2.2静态资源文件
+flask默认情况下指定在static目录中，访问路径也是/static,可以在创建Flask对象时，指定
+static_folder和static_url_path2个参数。
+
+static_folder指定静态资源文件存放的目录，一般情况下，静态资源存放是scc,js,图片素材，字体等
+
+static_url_path指定资源文件访问的url路径，默认是"/static"，如指定"/s"，针对static目录下的css下的my.css
+样式，完整访问路径url应该是：http://localhost:5000/s/css/my.css
+app = Flask(__name__, static_folder='static', static_url_path='/s')
+
+也可以在settings.py文件配置,但效果不确定不建议此方法
+class Dev():
+    ENV = 'developement' #默认运行环境 Production
+    SECRET_KEY = 'dsdajjkh#jlkj%@'
+
+    # 配置session
+    SESSION_TYPE = 'redis'
+    SESSION_REDIS = redis(host='116.62.193.152', db=8)
+
+    #配置静态资源目录及访问的url
+    STATIC_FOLDER = 'static'
+    STATIC_URL_PATH = '/s'
+
+模板过滤器
+过滤器主要针对模板中的变量的数据进行处理，如日期格式化，字符串格式化，大小写转换以及列表元素的提取等处理
+参考源码：jinja2.filters.py
+2.1.1.1常用的过滤器
+1.字符串过滤器
+capitalize首字母大写
+title每个单词的首字母大写
+upper大写转换
+lower小写转换
+format格式化字符串，类似%s格式化
+trim删除两边的空格，类似于字符串的strip()
+default指定默认值
+2.列表（可迭代）过滤器
+unique去掉重复的元素
+join使用指定字符，连接可迭代对象的每一个函数
+last读取最后一个元素
+first读取第一个元素
+slice切分指定元素个数的多个子列表
+random随机读取列表中的某一个元素
+sort排序
+list将生成器，可迭代对象转成list
+3.安全性过滤器
+striptags删除字符串所有html标签(开始，结束)
+safe渲染字符串的html标签，不会进行escape转换
+4.数值过滤器
+int转换成int类型
+float转换成float类型
+filesizeformat按文件大小转换
+round四舍五入，precision=0,method="common|ceil|floor"
+
+自定义过滤器
+@app.template_filter('moneyfmt')
+def moneyfmt_filter(value,method="common",precision=0):
+    # 'common'普通的金额格式化
+    value = round(value,precision)
+    if method == 'common':
+        # 以千位符分割
+        if isinstance(value,int):
+            pre_v=str(value)
+            end_v=''
+        else:
+            pre_v,end_v = str(value).split('.')
+            end_v = "."+end_v
+        pre_v = pre_v[::-1]
+
+        vs = [pre_v[i*3: i*3+3] for i in range(math.ceil(len(pre_v)/3))]
+        return ','.join(vs)[::-1] + end_v
+
+    # 'currency' 货币单位，万，百万，千万，亿
+    cur = ''
+    if value / 10000 < 1:
+        cur = ' 元'
+    elif value / (100*1000) < 1:
+        cur = '万元'
+        value = round(value / 10000, 2)
+    elif value / (1000*10000) < 1:
+        cur = '百万'
+        value = round(value / (100*10000), 2)
+    elif value / (10000*10000) < 1:
+        cur = '千万'
+        value = round(value / (1000*10000), 2)
+    else:
+        cur = '亿元'
+        value = round(value / (10000 * 10000), 2)
+    return str(value)+cur
+
+以上过滤器定义了两个格式的金额表示，common是以千位符分割的，currency是不同单位计算的
+------------------------------------------------------------------------------------------------------------------------
+2.1.2布局模板标签
+又称之位结构标签，设计整体页面分为上，左，右，下四部分。在子页面中可以继承布局
+的模板文件，有针对性地实现哪一部分，如只实现右边结构的内容
+创建base.html模板文件，声明页面的结构
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}  主页  {% endblock %}</title>
+</head>
+<body>
+{% block content %}
+{% endblock %}
+</body>
+</html>
+
+# {% block title %} {% endblock %} 声明块区域，它的结构被定义title名称
+# {% block content %} {% endblock %}声明content内容显示的块区域
+
+再创建index.html，此页面不需要像base.html那样，将html完整的标签写出来，只需要继承
+base.html，再次使用{% block title %} {% endblock %}可以填充base.html页面的内容
+{% extends "base.html"%}
+
+{% block title %}
+  这是我的主页
+{% endblock%}
+
+{% block content %}
+<h3>测试block结构标签</h3>
+{% endblock %}
+
+如果index.html又被其他子页面继承，在子页面填充的内容会覆盖父一级填充的内容，如果向保留
+父级填充的块内容，则在{% block %}和{% endblock %}两个标签之间增加{{ super() }}.
+{% extends "index2.html"%}
+
+{% block title %}
+  第三级的标题-主页
+{% endblock%}
+
+{% block content %}
+    {{ super() }}
+    <h4>以后在此显示内容</h4>
+{% endblock %}
+
+可以使用{% include "500.html" %}标签将指定网页内容填充到当前位置
+{% block content %}
+{{ super() }}
+<h4>以后在此显示内容</h4>
+
+  {% include "500.html" %}
+{% endblock %}
+
+include和extends的区别
+1.include导入整个网页，但是不能进行修改的
+2.extends只是继承网页，修改感兴趣的block
+
+2.1.3模板宏标签
+可以在html文件中使用{% macro函数名() %}定义宏函数，它用于生成特定的html标签，而且在之
+后可以重复地使用
+在macro.html,内容如下：
+{% macro menu() %}
+<ul>
+  <li>用户管理</li>
+  <li>库存管理</li>
+  <li>角色管理</li>
+</ul>
+{% endmacro %}
+在index.html中使用时，需要使用{% from %}标签将宏函数导入到当前的模板中
+{% from "macro.html" import menu %}
+{{ menu() }}
+
+------------------------------------------------------------------------------------------------------------------------
+一，ORM设计思想
+相对于数据库的操作，设计DAO结构的目的时简化数据库的操作，把SQL语句封装到基础类（BsaDao）中，但是要求开发人员必须特别熟悉SQL语句
+和Python的基础。自己设计Dao的优点有效防止SQL注入风险
+通过时ORM避免不会SQL的开发人员操作数据库，ORM的思想是将实体类(Model或者Entries)和数据库直接建立关联关系，
+即类->表，类对象->表中的记录，类对象的属性->表的字段。
+ORM（Object Relationshap Mapping）对象关系映射。
+1.类和表
+2.类实列即是表的记录
+3.类属性即为表的字段
+当ORM关系映射成功之后，直接操作类对象，即操作数据库中的表或者记录
+简单的实现ORM(自省+元类)如下：
+class User:
+    id = 432212299709098770
+    name = 'liyuanjie'
+    phone = 13267886101
+    money = 2000000
+
+def save(entity):
+    print(dir(entity))
+    # 读取对象的普通属性
+    print([attr for attr in dir(entity) if not attr.startswith('__')])
+    print(entity.__dict__)
+    print({attr: getattr(entity, attr) for attr in dir(entity) if not attr.startswith('__')})
+
+    # sql语句选择表插入值
+    sql = "insert into %s(%s) values(%s)"
+    # 创建具体表的变量
+    table = entity.__class__.__name__.lower()
+    # 创建表中key的值
+    colname = ','.join([col for col in entity.__dict__])
+    print(colname)
+    # 创建表中values的值
+    colplaceholders = ','.join(["%%(%s)s" % col for col in entity.__dict__])
+    print(colplaceholders)
+
+    sql = sql % (table, colname, colplaceholders)
+    print(sql)
+
+
+if __name__ == '__main__':
+    u1 = User()
+    u1.money = 100000
+    u1.phone = 15574673339
+    u1.name = '公孙离'
+    u1.id = 432930197987707890
+    save(u1)
+-------------------------------------------------------------
+二：Flask-SQLAlchemy插件
+2.1安装
+pip install flask-sqlalchemy -i http:mirrors.aliyun.com/pypi/simple
+
+2.2配置
+在settings.Dev类进行配置
+
+#数据库连接的路径dialect+driver://user:password@ip:port/db?charset=utf8
+SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:123456@116.62.193.152:3306/bank'
+SQLALCHEMY_TRACK_MODIFICATIONS = True  # 可扩展
+SQLALCHEMY_COMMIT_ON_TEARDOWN = True  #回收资源时自动关闭
+SQLALCHEMY_ECHO = True # 显示调试SQL
+
+2.3创建SQLAlchemy的实例并初始化
+2.3.1.创建models模块，在它的"__init__.py"脚本中创建
+
+from flask_sqlalchemy import SQLAlchemy
+
+db = SQLAlchemy()
+
+2.3.2.在创建Flask对象app的脚本，创建SQLAlchemy类对象
+
+from models import db
+# 初始化sqlalchemy类对象
+db.init_app(app)
+
+2.4实战项目
+1.将银行系统下的所有表创建相应的模型类
+1.1 声明用户的模型类UserEntity,继承db.Model父类
+ #默认情况下：类名即为表名
+class user(db.Model):
+    # 声明字段（属性），默认情况下属性名与字段相同
+    # uid = db.Column('id', primary_key=True, autoincrement=True)
+    id = db.Column(db.Integer(11), primary_key=True, autoincrement=True)
+    number = db.Column(db.String(50), unique=True)
+    name = db.Column(db.String(50), null=False)
+    phone = db.Column(db.String(50))
+    password = db.Column(db.String(50), null=False)
+
+1.2声明银行模型
+1.3声明银行卡模型
+1.4声明交易模型
+
+
+2.更新所有查询列表页面
+2.1在用户的list2路由的处理函数中使用User模型类
+from models import user
+    # dao = UserDao()
+    data = {
+        'user': user.query.all(),
+        'session': session
+    }
+    return render_template('user/list2.html', **data)
+
+3查询方法
+3.1query方法指定查询的字段，filter方法指定查询的条件
+db.session.query(user.namemuser.phone).filter(user.name.like('%i%')).all()
+db.session.query(user.name,user.phone).first() # 查看第一条
+3.2模型类可以直接发起查询，默认情况查询模型下所有字段
+user.query.filter(name='disen')
+# user.query(user.name,user.phone).all() #模型的query是不能被调用的
+3.3模型字段查询条件
+== 等值查询
+！= 不相等
+>= 或 __ge__()大于等于
+<= 或 __le__()小于等于
+like() 模糊匹配
+startswith() 字符串开头匹配
+endswith()字符串结尾匹配
+contains()字符串包含匹配
+
+3.4排序与分页查询
+排序: order_by(),可以在query和filter之后使用order_by.
+def test_model_order_page(self):
+    app.app_context().push()
+
+    # 按身份证排序
+    # 先按姓名排序，姓名相同，再按身份证排序
+    # 默认按升序ASC->asc()，可以指定降序DESC->desc()
+    for u in user.query.order_by(user.name,user.number.desc()):
+        print(u.name,u.phone)
+    print('------------------------------------------------------------')
+    for u in user.query \
+            .filter(user.name.startswith('叶')) \
+            .order_by(user.phone.desc()).all():
+        print(u.name,u.phone,u.number)
+
+分页:offset(),limit()
+如分页函数与order_by组合使用时，必须放在order_by之后。分页函数可以用在query和filter之后使用
+def test_page(self):
+    app.app_context().push()
+    query_set = user.query.filter(db.or_(
+        user.phone.startswith('13'),
+        user.phone.startswith('23')
+    )).order_by(user.phone);
+    for u in self.page_data(query_set,page=3).all():
+        print(u.name, u.phone)
+
+def page_data(self, query_set, page_size=2, page=1):
+    total = query_set.count()
+    pages = total // page_size + (1 if total % page_size > 0 else 0)
+    print('总条数：%s,每页显示%s条，总页数:%s' % (total, page_size, pages))
+    if page > pages:
+        page = pages
+    elif page <= 0:
+        page = 1
+    print('-------显示第 %s 页--------' % page)
+    return query_set.offset((page - 1) * page_size).limit(page_size)
+
+------------------------------------------------------------------------------------------------------------------------
+一,聚合查询
+SQLAlchemy支持聚合查询，使用db.session.query()查询和db.func.聚合函数().
+常用的聚合查询函数
+db.func.count(模型类的字段)统计
+db.func.sum() 求和
+db.func.min() 最小值
+db.func.max() 最大值
+db.func.avg() 平均值
+
+以上的聚合函数与mysql中聚合函数一一对应的。可以在聚合函数后使用.label()设置别名。
+另外，聚合函数中使用模型类字段必须出现在.group_by()函数中.当然也可以在group_by()之后使用having()
+设置聚合函数字段结果的条件，如果财富不少于多少钱，总人数不少于多少人等。在having()中可以使用.lable()设定的别名
+def test_sum_money(self):
+    app.app_context().push()
+    # 查询每个人的财富
+    result = db.session.query(Card.user_id,
+                              db.func.sum(Card.money).label('total')) \
+        .group_by(Card.user_id)\
+        .having(db.Column('total').__ge__(40000))\
+        .order_by(db.Column('total').desc()).all()
+    for user_id, money in result:
+        print(user.query.get(user_id).name,money)
+
+
+    def test_bank_money(self):
+        app.app_context().push()
+        # 汇总每个银行的开户人数，总金额，和每个银行的最小金额和最大金额银行卡绑定的用户信息
+        result1 = db.session.query(Card.bank_id,
+                       db.func.max(Card.money).label('max'),
+                       db.func.min(Card.money).label('min'),
+                       db.func.count(Card.user_id).label('um'),
+                       db.func.sum(Card.money).label('cm')) \
+            .group_by(Card.bank_id).all()
+        print(result1)
+        for i in result1:
+            print(bank.query.get(i.bank_id).name, i.um, i.cm, i.min, i.max)
+            print('----------最小和最大的存款用户信息---------')
+            for user_id, money in db.session.query(Card.user_id, Card.money) \
+                                .filter(Card.bank_id == i.bank_id,
+                                        db.or_(
+                                            Card.money == i.min,
+                                            Card.money == i.max
+                                        )).all():
+                print(user.query.get(user_id).name, money)
+
+原生sql查询
+class TestUser(TestCase):
+    def test_user_data(self):
+        sql = "select name,phone from user where name = '%s' limit 5"
+        app.app_context().push()
+        result = db.session.execute(sql % '李元杰')
+        print(type(result.cursor))  # pymysql.cursors.Cursor
+        # cursor对象也可以被迭代
+        # for name, phone in result.cursor.fetchall():
+        for name, phone in result.cursor:
+            print(name, phone)
+
+    def test_card_user_bank(self):
+        # app.app_context().push()
+        with app.app_context():
+            sql = """
+                select u.name, u.phone, b.name, b.address, c.number, c.money
+                from user u
+                join card c on (u.id = c.user_id)
+                join bank b on (b.id = c.bank_id)
+                order by c.money desc
+            """
+            exc = db.session.execute(sql)
+            for username, phone, bankname, address, number, money in exc.cursor:
+                print(username, phone, bankname, address, number, money)
+# exc.cousor是pymysql.cursors.Cursor类型，而且cursor可以被迭代。
+# 思考。如何让cursor查询结果变成字典类型
+
+连接查询
+join() 内连接
+outerjoin() 外连接
+db.session.query()+.filter()也可以实现连接查询
+def test_user_card(self):
+    app.app_context().push()
+    result = db.session.query(user.name,
+                              user.phone,
+                              bank.name.label('bankname'),
+                              bank.address,
+                              Card.money,
+                              Card.number) \
+        .filter(user.id == Card.user_id) \
+        .filter(bank.id == Card.bank_id)
+    for item in result.all():
+        print(item.name, item.phone, item.bankname, item.address,item.money, item.number)
+
+
+总结db.Column()对象的常用方法
+label()列的别名
+desc()/asc()排序
+条件方法：
+startswith()
+endswith()
+like()
+contains()
+__le__()
+__ge__()
+lt()
+gt()
+eq()
+isnot()
+in_()
+netin_()
+
+官方文档flask.pocoo.org/docs
+https:www.sqlalchemy
+
+模型关系分四种：
+一对一关系
+一对多关系
+多对一关系
+多对多关系
+
+# 模型的关系维护（建立）在多端
+user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+user = db.relationship(User, backref='cards')
+
+bank_id = db.Column(db.Integer, db.ForeignKey('bank.id'))
+bank = db.relationship(Bank, backref='cards')
+
+两个模型类之间建立关系，必须存在一个外键约束。
+单元测试：
+class TestRalationshap(TestCase):
+    def test_1(self):
+        app.app_context().push()
+        user = User.query.get(1)
+        print(user.name)
+        for card in user.cards:
+            print(card.bank.name, card.number, card.money, card.user.name)
+    def test_2(self):
+        app.app_context().push()
+        for card in Card.query.all():
+        # 显示用户名，用户手机号，银行名，存款
+        print(card.user.name, card.user.phone, card.bank.name, card.money)
+
+关于relationshap的用法(自关联):
+------------------------------------------------------------------------------------------------------------------------
+总结与复习：
+一，Flask的技术点复习
+请求与响应
+flask依赖的三个基本库
+falsk项目的拆分:更好地体现mvc/mtv的设计思想，易于扩展和维护
+flask应用对象中属性的配置config
+路由规则
+视图处理
+    request对象中的属性（url,base_url,host_url,path,status_code,remote_addr）
+    request对象中的字典属性(args.from,cookie,headers,files)
+    request对象中的获取上传json数据的方法：request.get_json()
+    生成响应对象
+        make_response(data,code)
+        Response(data,code)
+        jsonify(dict|list)
+        redirect(path|url_for()) 重定向
+模板技术
+    模板文件的位置templates(一定和创建Flask()对象所在python脚本同一级目录)
+    模板文件即使html文件，只不过html文件中使用{{}}或语句格式{% %}
+    模板结构语句块{% block %}, {% extends %}, {% include %}
+    模板中的分支与循环语句{% if %},{% else %},{% elif %},{% for %}/{{ loop }}
+    模板过滤器：字符串类型，格式化，列表，对象，自定义@app.templeate_fiter('')
+数据模型sqlalchemy
+    数据类型：Sting,Integer,Float,Date,DateTime,Text,Boolean,Enum('枚举')
+    约束：primary_key,unique,nullable,default,server_default,autoincrement,
+    Foreignkey
+    模型类：db.Model
+    字段类：db.Column()
+    模型字段的反向引用
+        db.relationship(引用的类，backref='引用类中的新增属性')
+    模型的多对多关系：
+        使用第三个模型或第三个表db.table
+    模型的CURD:
+        db.session.query(类或字段).filter(条件)
+        模型类.query.filter(条件)|all()|one()
+------------------------------------------------------------------------------------------------------------------------
+二.flask实现api接口开发
+1.创建环境（运行环境:1-virtualenv, 2-conda）
+pip install flask flask-cors flask-blueprint flask-script pymysql flask-sqlalchemy redis
+pip freeze > requirements.txt 生成项目依赖包文件
+1.1 创建manage.py文件做为程序入口，app下创建templates目录，static目录，views包（蓝图包）
+1.2 创建app包做为工程入口，app下创建templates目录，static目录，views包（蓝图包）
+1.3 创建models包
+1.4 创建utils包
+1.1.1在app的__init__.py文件中导入Flask
+from flask import Flask
+import settings
+app = Flask(__name__)
+app.config.from_object(settings.Dev)
+1.1.2在原始目录下创建settings.py文件并执行以下配置
+class Dev:
+    ENV = 'development'
+    DEBUG = True
+
+    # 配置SQLALCHEMY数据库连接及特征
+    SQLALCHEMY_DATABASE_URI = 'mysql+pymysql://root:123456@116.62.193.152:3306/edu?charset=utf8'
+    SQLALCHEMY_TRACK_MODIFICATIONS = True  # 可扩展 兼容性问题
+    SQLALCHEMY_COMMIT_ON_TEARDOWN = True  # 回收资源时自动关闭
+    SQLALCHEMY_ECHO = True  # 显示SQL
+
+2.解决跨域问题-Flask-CORS
+3.选择数据库操作框架(自定义DAO+SQL,SQLAlchemy-ORM,基于元类自定义ORM)
+4.拆分项目结构(app,dao,utils,manage.py)
+5.数据的交互json
+    1.前端上传json数据，等待接受后端响应的json数据结果
+    2.后端接收json并解析，最后生成json的结果数据响应给客户端
+
+代码托管到github：http://github.com/disenQF/edu_api_v3.git
+开发者角色：
+主管（搭建项目架构，上传code到github）
+开发人员
+第一次从github clone代码
+创建项目运行环境
+安装requirements.txt中的依赖库pip freeze > requirement.txt
+启动项目
+接受开发任务
+任务code开发完成后，本地提交，上传到服务器(先更新，再上传)
+第二天：开发新的任务code之前，先更新代码(别人新增加的任务code)
+
+2.1 任务（用户，角色和权限的关系模型）
+增加用户角色：id，角色名称
+1.系统管理员
+2.普通用户
+
+增加用户权限：id,名称
+1.delete_user
+2.create_user
+3.read_user
+4.update_user
+5.create_db
+6.drop_db
+
+用户和角色的关系：多对多，1个用户有n个角色，一个角色有n个用户
+角色和权限的关系：多对多，一个角色包含多个权限，一个权限被多个角色使用
+勾子函数@app.befor_request验证操作权限：
+    在"/drop_db"操作时验证当前用户是否具备管理员的角色及删除表的权限
+
+三，用户登录之token
+要求:当用户登录成功之后，通过uuid生成用户对应的token（身份令牌）
+客户端：cookie储存token
+1.flask中日志
+    日志的等级: logging.NOSET-0 , DEBUG-10, INFO-20, WARNING-30, ERROR-40,
+                CRITICAL-50
+    可以删除flask的默认日志处理器，可以增加自己的处理Handler
+服务端：redis缓存token
+
+1.2表单标签的enctype为"multipart/form-data",且method = 'post'
+1.3Ajax方式上传文件
+
+二,flask相关知识点
+    常用的处理器Handler:
+        logging.StreamHandler/FileHandler
+        logging.handlers.HTTPHandler/SMTPHandler
+
+    app.logger.info()
+    blue.logger.info()??
+
+2.分页查询
+3.页面缓存： n秒内访问的页面不会多次渲染
+4.flask-restful
+
+

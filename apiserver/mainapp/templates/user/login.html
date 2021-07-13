@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>用户登录</title>
+    <style>
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+<h3>用户登录</h3>
+<form action="/user/login" method="post">
+    用户名：<input name="name" size="20"><br>
+    口&nbsp;&nbsp;&nbsp;令:<input name="password" type="password" size="20"><br>
+    <button>提交</button>
+
+</form>
+<p class="error">
+    {{ message }}
+</p>
+</body>
+</html>

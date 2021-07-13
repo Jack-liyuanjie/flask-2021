@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}  主页  {% endblock %}</title>
+    {% block css %}{% endblock %}
+    <style>
+        ul,li {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+        li {
+            padding: 10px 20px;
+            background-color: cyan;
+        }
+        li:hover{
+            background-color: chocolate;
+        }
+        .add{
+            color: red;
+        }
+        #left-menu{
+            display: inline-block;
+            border-right: 2px solid lawngreen;
+            height: 300px;
+            width: 200px;
+        }
+        #content{
+            display: inline-block;
+            background-color: lightgoldenrodyellow;
+            position: absolute;
+        }
+    </style>
+</head>
+<body>
+<div id="left-menu">
+    {% block left_menu %}
+        <ul>
+        {% for menu in session.menus %}
+            <li>
+                <a href="{{ menu.url }}">{{ menu.title }}</a>
+            </li>
+        {% endfor %}
+        </ul>
+    {% endblock %}
+</div>
+<div id="content">
+    {% block content %}
+    {% endblock %}
+</div>
+
+</body>
+</html>
